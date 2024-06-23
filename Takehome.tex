@@ -1,0 +1,180 @@
+\documentclass{article}
+\usepackage{fancyhdr}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{amsmath}
+\usepackage{setspace}
+
+\begin{document}
+
+\fancypagestyle{custom}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \fancyhead[R]{\includegraphics[width=1.5cm]{Images/ut.png}}
+    \renewcommand{\footrulewidth}{0pt}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+\newenvironment{problem}[1]
+{
+    \textbf{#1}\hrulefill
+    \begin{quote}
+        }
+        {
+    \end{quote}
+}
+
+\title{Robotics -- Takehome exam}
+\author{Mohammad Arabzadeh (810102206)}
+\date{\today}
+
+\maketitle
+
+\newenvironment{sect}{\section*}{\par}
+\begin{problem}{Problem 1}
+
+\begin{problem}{1.1}
+variables for each particle are: $x, y, \theta$.
+\end{problem}
+\begin{problem}{1.2}
+\[
+    \begin{bmatrix}
+        x_{t+1} \\
+        y_{t+1} \\
+        \theta_{t+1}
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        x_t \\
+        y_t \\
+        \theta_t
+    \end{bmatrix}
+    +
+    \begin{bmatrix}
+        \frac{r}{2} (v_l + v_r) \cos(\theta_t) \Delta t \\
+        \frac{r}{2} (v_l + v_r) \sin(\theta_t) \Delta t \\
+        \frac{r}{2} (v_r - v_l) \Delta t
+    \end{bmatrix}
+    +
+    \begin{bmatrix}
+        0 \\
+        0 \\
+        \omega
+    \end{bmatrix}
+\]
+\end{problem}
+
+\begin{problem}{1.3}
+\[
+    \begin{bmatrix}
+        x_{t+1}^i \\
+        y_{t+1}^i \\
+        \theta_{t+1}^i
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        x_t^i \\
+        y_t^i \\
+        \theta_t^i
+    \end{bmatrix}
+    +
+    \begin{bmatrix}
+        \frac{r}{2}(v_l + v_r) \cos(\theta_t^i) \Delta t \\
+        \frac{r}{2}(v_l + v_r) \sin(\theta_t^i) \Delta t \\
+        \frac{r}{2}(v_r - v_l) \Delta t
+    \end{bmatrix}
+    +
+    \begin{bmatrix}
+        \delta_X^i \\
+        \delta_Y^i \\
+        \delta_\theta^i
+    \end{bmatrix}
+\]
+
+where $\delta_X^i, \delta_Y^i, \delta_\theta^i$ are the noise.
+\end{problem}
+
+\begin{problem}{1.4}
+As there are only robots in the field, there is no dynamic obstacle.
+
+$p_{hit} (z|x,m) = \eta \frac{1}{\sqrt{2\pi}\sigma }exp(-\frac{1}{2} \frac{(z-z_{exp})^2}{\sigma^2})$
+
+$p_{unexp} = 0$
+
+$p_{rand} = \eta\frac{1}{z_{max}}$
+
+$p_{max} = \eta \frac{1}{z_{small}}$\\
+
+$p(z|x,m) = \alpha_{hit}.p_{hit} + \alpha_{unexp}.0 +\alpha_{rand}.p_{rand}+\alpha_{max} .p_{max}$
+
+\end{problem}
+
+\begin{problem}{1.5}
+The presence of other robots does not affect the sensor model of the landmark sensors since robots do not have sensors. The sensor model for the landmark sensors remains the same as described in problem 1.4.
+\end{problem}
+
+\begin{problem}{1.6}
+If they know each other's positions, we will not have dynamic obstacles. If they don't know each other's positions, we will have uncertainty.
+\end{problem}
+
+\begin{problem}{1.7}
+The correction phase for the sensor model in the particle filter can be implemented as follows:
+
+For each particle $i$:
+1. Initialize the weight $w_t^i$ to 1.
+
+
+2. For each sensor $j$:
+a. Compute the expected measurement $z_{exp}^j$ based on the particle's position and the map.
+b. Compute the likelihood $p_{hit}^j$ using the formula:
+\[
+    p_{hit}^j(z^j|x_t^i,m) = \eta \frac{1}{\sqrt{2\pi}\sigma_j} \exp\left(-\frac{1}{2} \frac{(z^j-z_{exp}^j)^2}{\sigma_j^2}\right)
+\]
+c. Compute the weight update $w_t^i$ for sensor $j$ as:
+\[
+    w_t^i = w_t^i \cdot p_{hit}^j
+\]
+3. Normalize the weights of all particles:
+\[
+    w_t^i = \frac{w_t^i}{\sum_{i=1}^{N} w_t^i}
+\]
+4. Resample the particles based on their weights.
+
+Note: In the above equations, $z^j$ represents the actual measurement from sensor $j$, $\sigma_j$ is the standard deviation of the sensor's measurement noise, and $\eta$ is a normalization constant.
+
+This correction phase accounts for the sensor measurements and updates the weights of the particles accordingly, allowing the particle filter to converge towards the true robot positions.
+\end{problem}
+
+\begin{problem}{1.8}
+In this setup, the correspondence problem can occur.Sensors cannot associate their data with specific robots without knowing which one is in front of them.
+\end{problem}
+\begin{problem}{1.9}
+More correspondence would occur as the robots also don't know which sensor data is which. This would lead to more uncertainty in the estimation. There are 24 combinations of correspondence for 3 robots; we assign 24 uniform probabilities for the the sensor data and by observations, we can update the probabilities and gain insight about which sensor data belongs to which.
+\end{problem}
+
+\begin{problem}{1.10}
+The initial points in Kalman filter are usually known but in this case, it's not. We should start with some random points and correct them and wait until $p(z|x)$ converges; we can get rid of minimal $p(z|x)$ observations. The problem with this method is the cost of processing.
+\end{problem}
+\begin{problem}{1.11}
+Since robots have only odometry and no sensors on themselves (assuming sensors on the walls are beam-based), they could hit the walls and get stuck while their wheels are turning and thus draw a false map. The areas between the sensors can be drawn better.
+\end{problem}
+\end{problem}
+
+\begin{problem}{Problem 2}
+\begin{problem}{2.1}
+
+$l_t = l_{t-1} + log\frac{p(x|z_t)}{1-p(x|z_t)} - log\frac{p(x)}{1-p(x)}$
+
+Since observations provide no information about any cell $x$'s occupancy, the posterior probability of occupancy of any cell $x$ is equal to the prior probability of occupancy of that cell and the logarithms become equal and cancel each other and $l$ will never update.
+
+\end{problem}
+\begin{problem}{2.2}
+In general, as the likelihood gets richer the need for a prior decreases, so after a while, we can only rely on the likelihood.
+\end{problem}
+\begin{problem}{2.3}
+If the sensors have zero error, the probability that particles having coordinates equal to observations is almost zero, hence, weights become zero and particles will die out.
+\end{problem}
+\begin{problem}{2.4}
+The Correction phase for a single particle will be 1. summation of weights will be also 1 and the weight of the particle will never change and there will be no correction.
+\end{problem}
+\end{problem}
+\end{document}
